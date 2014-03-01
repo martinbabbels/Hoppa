@@ -428,8 +428,6 @@ Hoppa.prototype = {
     
     var hoppa = this;
     
-    var num_files_compiled = 0;
-    var num_files = 0;
     
     for(var css_out in this.project.less) {
       num_files += this.project.less[css_out].length;
@@ -439,6 +437,9 @@ Hoppa.prototype = {
       
       var css_str = '';
       
+      var num_files_compiled = 0;
+      var num_files = 0;
+    
       this.project.less[css_out].forEach(function(item) {
         
         try {
