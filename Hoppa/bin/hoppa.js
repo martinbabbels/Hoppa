@@ -1,0 +1,504 @@
+#!/usr/bin/env node
+// vim: set ft=javascript :
+
+/*
+                                     
+ _     _                             
+(_)   (_)                            
+(_)___(_)  ___   ____   ____    ____ 
+(_______) (___) (____) (____)  (____)
+(_)   (_)(_)_(_)(_)_(_)(_)_(_)( )_( )
+(_)   (_) (___) (____) (____)  (__)_)
+                (_)    (_)           
+                (_)    (_)           
+                
+*/
+
+// Modules
+var program = require('commander');
+var watchr = require('watchr');
+
+// Node
+var fs = require('fs');
+var npath = require('path');
+
+// Lib
+var Utils = require('../lib/utils');
+var Console = require('../lib/console');
+var Javascript = require('../lib/javascript');
+var Less = require('../lib/less');
+
+/* Hoppa class */
+function Hoppa() {
+  
+  this.project = {
+    path: process.cwd() + '/'
+    ,json: {}
+    ,javascript: {}
+    ,less: {}
+  }
+}
+
+program
+  .version('0.0.1')
+  .option('-p, --project [json]', 'Set json project file [json]', 'hoppa.json')
+  .option('-a, --all', 'Compress javascript and compile less')
+  .option('-j, --js', 'Compress javascript')
+  .option('-l, --less', 'Compile less')
+  .option('-w, --watch', 'Start with file watch')
+  .option('-n, --notifications', 'Show notifications')
+  .parse(process.argv);
+
+Hoppa.prototype = {
+  
+  //--------------------------------------------------------------
+  setup: function() {
+ 
+    var file = npath.normalize(this.project.path + program.project); 
+    this.project.path = npath.dirname(file) + '/';
+  
+    // Check if file exists...
+    if(fs.existsSync(file)) {
+    
+      // Include project file
+      this.project.json = require(file);
+      
+    } else {
+    
+      // No file found
+      Console.error('Could not find Hoppa project file at ' + file);
+      process.exit(1);
+    }
+    
+    if((!program.all && !program.js) && !program.less) {
+    
+      program.js = (this.project.json.config.compress);
+      program.less = (this.project.json.config.compile);
+      
+      if((!program.js && !program.less)) {
+        program.help();
+        process.exit(1);
+      }
+    }
+    
+    var hoppa = this;
+    
+    // Create javascript files
+    for(var js_out in hoppa.project.json.js) {
+    
+      hoppa.project.json.js[js_out].forEach(function(js_in, i) {
+        
+        var n_js_in = npath.normalize(hoppa.project.path + js_in);
+        var n_js_out = npath.normalize(hoppa.project.path + js_out);
+        
+        // Add javascript
+        hoppa.addJavascript(n_js_in, n_js_out);
+        
+        // Create file monitor
+        if(program.watch) hoppa.createMonitor(n_js_in);
+      });
+    }
+    
+    if(program.less || program.all) {
+    
+      // Create less files
+      for(var css_out in hoppa.project.json.less) {
+  
+        this.project.json.less[css_out].forEach(function(less_in, i) {
+          
+          var n_less_in = npath.normalize(hoppa.project.path + less_in);
+          var n_css_out = npath.normalize(hoppa.project.path + css_out);
+          
+          // Add less
+          hoppa.addLess(n_less_in, n_css_out);
+          
+          // Add dependencies
+          hoppa.project.less[n_css_out].forEach(function(item) {
+            try {
+            
+              item.getRules(function(files) {
+              
+                if(!Array.isArray(files)) {
+                  Console.error('Could not include dependencies, please check your less files for errors');
+                  process.exit(1);
+                }
+                
+                files.forEach(function(file) {
+                  
+                  // Create file monitor
+                  if(program.watch) hoppa.createMonitor(file);
+                });
+              });
+              
+            } catch(e) {
+            
+              Console.error(e);
+              process.exit(1);
+            }
+          });
+  
+          
+          // Create file monitor
+          if(program.watch) hoppa.createMonitor(n_less_in);
+   
+        });
+      }
+    }
+
+    Console.empty();
+    Console.info('Hoppa!');
+    
+    this.update();
+ 
+  }
+  
+  //--------------------------------------------------------------
+  ,createMonitor: function(path) {
+   
+    var hoppa = this;
+    
+    var dir = Utils.getDirPath(path);
+    var ext = Utils.getDirExt(path);
+    var delay = hoppa.project.json.config.catchupDelay;
+    
+    
+    var create_watcher = function(file) {
+      
+      var opt = {
+        path: file,
+        catchupDelay: (delay) ? delay : 1000,
+        listeners: {
+          change: function(
+            changeType
+            ,filePath
+            ,fileCurrentStat
+            ,filePreviousStat) {
+              if(changeType == 'update') {
+                hoppa.update(filePath);
+              }
+          }
+        }
+      };
+    
+      watchr.watch(opt);
+    }
+    
+    if(dir) {
+    
+      var files = Utils.getDirFiles(dir, ext);
+
+      files.forEach(function(file) {
+        if(!hoppa.isOutputFile(file)) {
+          create_watcher(file);
+        }
+      });
+      
+    } else {
+      create_watcher(path);
+    }
+    
+  }
+  
+  //--------------------------------------------------------------
+  ,addJavascript: function(jsIn, jsOut) {
+    
+    if(!this.project.javascript[jsOut]) {
+      this.project.javascript[jsOut] = [];
+    }
+ 
+    var dir = Utils.getDirPath(jsIn);
+    var hoppa = this;
+    
+    if(dir) {
+    
+      var ext = Utils.getDirExt(jsIn);
+      var files = Utils.getDirFiles(dir, ext);
+      
+      files.forEach(function(js_file) {
+      
+        if(!hoppa.isOutputFile(js_file)) {
+          hoppa.project.javascript[jsOut].push(
+            new Javascript(js_file)
+          );
+        }
+        
+      });
+      
+    } else {
+    
+      this.project.javascript[jsOut].push(
+        new Javascript(jsIn)
+      );
+    }
+    
+  }
+  
+  //--------------------------------------------------------------
+  ,addLess: function(lessIn, cssOut) {
+    
+    if(!this.project.less[cssOut]) {
+      this.project.less[cssOut] = [];
+    }
+    
+    var dir = Utils.getDirPath(lessIn);
+    var hoppa = this;
+    
+    if(dir) {
+    
+      var ext = Utils.getDirExt(lessIn);
+      var files = Utils.getDirFiles(dir, ext);
+      
+      files.forEach(function(less_file) {
+      
+        if(!hoppa.isOutputFile(less_file)) {
+          hoppa.project.less[cssOut].push(
+            new Less(less_file)
+          );
+        }
+        
+      });
+      
+    } else {
+    
+      this.project.less[cssOut].push(
+        new Less(lessIn)
+      );
+    }
+
+  }
+  
+  //--------------------------------------------------------------
+  ,getOutputFile: function(file) {
+    
+    var hoppa = this;
+    var ext = npath.extname(file);
+    var output_file = false;
+    
+    if(ext == '.js') {
+      for(var js in this.project.javascript) {
+        this.project.javascript[js].forEach(function(item) {
+          if(item.file == file) output_file = js;
+        });
+      }
+    }
+    
+    if(ext == '.less') {
+      for(var less in this.project.less) {
+        this.project.less[less].forEach(function(item) {
+          if(item.file == file) output_file = less;
+        });
+      }
+    }
+    return output_file;
+  }
+  
+  //--------------------------------------------------------------
+  ,isOutputFile: function(file) {
+    
+    var is_ouput_file = false;
+    
+    for(var js in this.project.json.js) {
+      var p = npath.normalize(this.project.path + js);
+      if(file == p) is_ouput_file = true; 
+    }
+    
+    return is_ouput_file;
+  }
+  
+  //--------------------------------------------------------------
+  ,getFile: function(file) {
+    
+    var hoppa = this;
+    var ext = npath.extname(file);
+    var o_file = false;
+    
+    if(ext == '.js') {
+      for(var js in this.project.javascript) {
+        this.project.javascript[js].forEach(function(item) {
+          if(item.file == file) o_file = item;
+        });
+      }
+    }
+    
+    if(ext == '.less') {
+      for(var less in this.project.less) {
+        this.project.less[less].forEach(function(item) {
+          if(item.file == file) o_file = item;
+        });
+      }
+    }
+    return o_file;
+  }
+  
+  //--------------------------------------------------------------
+  ,update: function(file) {
+ 
+    var ext;
+    
+    if(file) {
+      ext = npath.extname(file);
+    }
+    
+    var ds = new Date();
+    
+    var cb = function() {
+    
+      var de = new Date();
+      var end_msg = 'Hoppa completed in ' + (de.getTime() - ds.getTime()) + ' ms';
+      
+      Console.empty();
+      Console.end(end_msg);
+      if(program.notifications) Console.growl(end_msg);
+      Console.empty();
+      
+      if(program.watch) Console.info('Watching..');
+    }
+    
+    
+    Console.empty();
+    Console.start('Hoppa start ' + new Date().toString());
+    if(file) Console.start('@ '+ file);
+    Console.empty();
+    
+    if(file) {
+    
+      if(ext == '.js') {
+        this.compressJavascriptFile(this.getOutputFile(file));
+        cb();
+        return;
+      }
+     
+      if(ext == '.less') {
+        this.compileLess(cb);
+        return;
+      }
+      
+    } else {
+      if(program.js || program.all) this.compressJavascript();
+      if(program.less || program.all) this.compileLess(cb);
+    }
+
+  }
+  
+  //--------------------------------------------------------------
+  ,compressJavascript: function() {
+    
+    Console.notice('Javascript');
+ 
+    for(var js_out in this.project.javascript) {
+      this.compressJavascriptFile(js_out);
+    }
+  }
+  
+  //--------------------------------------------------------------
+  ,compressJavascriptFile: function(file) {
+    
+    var ok = true;
+    var js_str = '';
+    
+    this.project.javascript[file].forEach(function(item) {
+     
+      try {
+        if(program.js  || program.all) {
+          js_str += item.compress();
+          Console.log(' + ' + item.file + ' compressed');
+        } else {
+          js_str += '\n\n';
+          js_str += '/* ' + item.file + '  */';
+          js_str += '\n\n';
+          js_str += item.getContents();
+        }
+        
+      } catch(e) {
+      
+        ok = false;
+        Console.error('Javascript error at ' + item.file);
+      }
+      
+    });
+    
+    // Write compressed javascript
+    var js_file_err = fs.writeFileSync(file, js_str);
+    
+    if(js_file_err) {
+    
+      Console.error('Could not write ' + file);
+      return;
+    }
+    
+    if(ok) {
+      Console.status(' > ' + file + ' updated');
+    }
+    
+    
+  }
+  
+  //--------------------------------------------------------------
+  ,compileLess: function(cb) {
+    
+    if(!program.less && !program.all) return;
+    
+    Console.empty();
+    Console.notice('Less');
+    
+    var hoppa = this;
+    
+    var num_files_compiled = 0;
+    var num_files = 0;
+    
+    for(var css_out in this.project.less) {
+      num_files += this.project.less[css_out].length;
+    }
+    
+    for(var css_out in this.project.less) {
+      
+      var css_str = '';
+      
+      this.project.less[css_out].forEach(function(item) {
+        
+        try {
+        
+          item.compile(function(err, css) {
+           
+            if(!err) {
+      
+              Console.log(' + ' + item.file + ' compiled');
+              
+              css_str += css;
+              num_files_compiled++;
+              
+              if(num_files_compiled == num_files) {
+     
+                // Write compiled less
+                var less_file_err = fs.writeFileSync(css_out, css_str);
+                
+                if(less_file_err) {
+                
+                  Console.error('Could not write ' + css_out);
+                  return;
+                }
+                
+                Console.status(' > ' + css_out + ' updated');
+                
+                cb();
+              }
+            } else {
+            
+              Console.error('Less compile error at ' + item.file);
+              cb();
+            }
+          });
+            
+        } catch(e) {
+          
+          Console.error('Less error at ' + item.file);
+          cb();
+        }
+      });
+      
+    }
+  }
+ 
+};
+
+new Hoppa().setup();
