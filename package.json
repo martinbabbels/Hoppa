@@ -19,7 +19,7 @@
      ,"cli-color": "0.2.3"
      ,"growl": "1.7.0"
      ,"commander": "2.1.0"
-     ,"watchr": "2.4.11"
+     ,"chokidar": "0.8.1"
   }
   ,"license": "MIT"
   ,"engines": {

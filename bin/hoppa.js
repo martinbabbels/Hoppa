@@ -16,7 +16,7 @@
 
 // Modules
 var program = require('commander');
-var watchr = require('watchr');
+var chokidar = require('chokidar');
 
 // Node
 var fs = require('fs');
@@ -159,28 +159,13 @@ Hoppa.prototype = {
     
     var dir = Utils.getDirPath(path);
     var ext = Utils.getDirExt(path);
-    var delay = hoppa.project.json.config.catchupDelay;
-    
+   
     
     var create_watcher = function(file) {
       
-      var opt = {
-        path: file,
-        catchupDelay: (delay) ? delay : 1000,
-        listeners: {
-          change: function(
-            changeType
-            ,filePath
-            ,fileCurrentStat
-            ,filePreviousStat) {
-              if(changeType == 'update') {
-                hoppa.update(filePath);
-              }
-          }
-        }
-      };
-    
-      watchr.watch(opt);
+      chokidar.watch(file, {ignored: /[\/\\]\./}).on('change', function(file) {
+        hoppa.update(file);
+      });
     }
     
     if(dir) {

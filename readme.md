@@ -18,14 +18,13 @@ $ sudo npm install -g
 
 ### Configure
 
-Add a Hoppa project file. Hoppa looks for `hoppa.json` or a given json path at launch using `-p` (see Launch). Use config to define wether Hoppa should compress javascript and/or compile less files when running Hoppa without arguments (-a, -j, -l). When `catchupDelay` is defined, the file watcher will use the defined number in ms to delay the change event. Increase this delay is you experience double change events caused by your editor. By default the delay is to 500ms.
+Add a Hoppa project file. Hoppa looks for `hoppa.json` or a given json path at launch using `-p` (see Launch). Use config to define wether Hoppa should compress javascript and/or compile less files when running Hoppa without arguments (-a, -j, -l).
 
 ```sh
 {
   "config": {
     "compress": true
     ,"compile": true
-    ,"catchupDelay": 500
   }
   ,"js": {
     "./js/scripts.min.js": ["./js/*.js"]
