@@ -12,7 +12,7 @@
   ,"bin": {
     "hoppa": "./hoppa"
   }
-  "repository": {
+  ,"repository": {
     "type": "git",
     "url": "git://github.com/martinbabbels/Hoppa.git"
   }
