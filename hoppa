@@ -40,7 +40,7 @@ function Hoppa() {
 }
 
 program
-  .version('0.0.1')
+  .version('0.0.9')
   .option('-p, --project [json]', 'Set json project file [json]', 'hoppa.json')
   .option('-a, --all', 'Compress javascript and compile less')
   .option('-j, --js', 'Compress javascript')
