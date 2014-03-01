@@ -71,10 +71,14 @@ Hoppa.prototype = {
     }
     
     if((!program.all && !program.js) && !program.less) {
-    
-      program.js = (this.project.json.config.compress);
-      program.less = (this.project.json.config.compile);
-      
+      try {
+        program.js = (this.project.json.config.compress);
+      } catch(e) {
+      }
+      try {
+        program.less = (this.project.json.config.compile);
+      } catch(e) {
+      }
       if((!program.js && !program.less)) {
         program.help();
         process.exit(1);
