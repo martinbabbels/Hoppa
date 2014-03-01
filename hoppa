@@ -419,7 +419,7 @@ Hoppa.prototype = {
   }
   
   //--------------------------------------------------------------
-  ,compileLess: function(cb) {
+  ,compileLess: function(callback) {
     
     if(!program.less && !program.all) return;
     
@@ -428,38 +428,35 @@ Hoppa.prototype = {
     
     var hoppa = this;
     
-    for(var css_out in this.project.less) {
+    var compile_less = function(css_file, cb) {
       
       var css_str = '';
-      
       var num_files_compiled = 0;
-      var num_files = this.project.less[css_out].length;
-    
-      this.project.less[css_out].forEach(function(item) {
+      var num_files = hoppa.project.less[css_file].length;
+      
+      hoppa.project.less[css_file].forEach(function(item) {
         
-        try {
-        
-          item.compile(function(err, css) {
+        try {        
+          item.compile(function(err, css) {     
            
             if(!err) {
-      
-              Console.log(' + ' + item.file + ' compiled');
               
+              Console.log(' + ' + item.file + ' compiled');
               css_str += css;
               num_files_compiled++;
               
               if(num_files_compiled == num_files) {
      
                 // Write compiled less
-                var less_file_err = fs.writeFileSync(css_out, css_str);
+                var less_file_err = fs.writeFileSync(css_file, css_str);
                 
                 if(less_file_err) {
                 
-                  Console.error('Could not write ' + css_out);
+                  Console.error('Could not write ' + css_file);
                   return;
                 }
                 
-                Console.status(' > ' + css_out + ' updated');
+                Console.status(' > ' + css_file + ' updated');
                 
                 cb();
               }
@@ -476,7 +473,23 @@ Hoppa.prototype = {
           cb();
         }
       });
-      
+    }
+    
+    var total = 0;
+    var total_compiled = 0;
+    
+    for(var css_out in this.project.less) {
+      total += hoppa.project.less[css_out].length;
+    }
+    for(var css_out in this.project.less) {
+      compile_less(css_out, function() {
+       
+        total_compiled++;
+        
+        if(total == total_compiled) {
+          callback();
+        }
+      });
     }
   }
  
