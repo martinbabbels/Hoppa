@@ -5,15 +5,14 @@ Hoppa is a javascript compressor and less compiler for web projects.
 Version
 ----
 
-0.0.1
+0.0.2
 
 
 Installation
 --------------
 
 ```sh
-$ cd src
-$ sudo npm install -g
+$ sudo npm install hoppa -g
 ```
 
 ### Configure
