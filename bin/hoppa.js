@@ -162,8 +162,7 @@ Hoppa.prototype = {
    
     
     var create_watcher = function(file) {
-      
-      chokidar.watch(file, {ignored: /[\/\\]\./}).on('change', function(file) {
+      chokidar.watch(file, {persistent:true, ignored: /[\/\\]\./}).on('change', function(file) {
         hoppa.update(file);
       });
     }
