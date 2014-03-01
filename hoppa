@@ -321,6 +321,7 @@ Hoppa.prototype = {
     
     if(file) {
       ext = npath.extname(file);
+      Console.clear();
     }
     
     var ds = new Date();
