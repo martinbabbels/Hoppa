@@ -1,6 +1,6 @@
 {
   "name": "hoppa"
-  ,"version": "0.0.4"
+  ,"version": "0.0.5"
   ,"author": "Apollo <info@apollomedia.nl>"
   ,"description": "a simple way to deliver your less, css and javascripts"
   ,"contributors": [ 
@@ -19,7 +19,7 @@
      ,"cli-color": "~0.2.3"
      ,"growl": "~1.7.0"
      ,"commander": "~2.1.0"
-     ,"chokidar": "~0.8.1"
+     ,"chokidar": "~0.5.3"
   }
   ,"license": "MIT"
 }
