@@ -70,18 +70,21 @@ Hoppa.prototype = {
       process.exit(1);
     }
     
+    // Args
     if((!program.all && !program.js) && !program.less) {
-      try {
-        program.js = (this.project.json.config.compress);
-      } catch(e) {
-      }
-      try {
-        program.less = (this.project.json.config.compile);
-      } catch(e) {
-      }
-      if((!program.js && !program.less)) {
-        program.help();
-        process.exit(1);
+      if(!program.watch) {
+        try {
+          program.js = (this.project.json.config.compress);
+        } catch(e) {
+        }
+        try {
+          program.less = (this.project.json.config.compile);
+        } catch(e) {
+        }
+        if((!program.js && !program.less) && !program.watch) {
+          program.help();
+          process.exit(1);
+        }
       }
     }
     
@@ -103,7 +106,7 @@ Hoppa.prototype = {
       });
     }
     
-    if(program.less || program.all) {
+    if(program.less || program.all || program.watch) {
     
       // Create less files
       for(var css_out in hoppa.project.json.less) {
@@ -132,7 +135,7 @@ Hoppa.prototype = {
                   // Create file monitor
                   if(program.watch) hoppa.createMonitor(file);
                 });
-              });
+              }, hoppa.project.path);
               
             } catch(e) {
             
@@ -152,8 +155,13 @@ Hoppa.prototype = {
     Console.empty();
     Console.info('Hoppa!');
     
-    this.update();
- 
+    if(program.all || program.js || program.less) {
+      this.update();
+    }
+    
+    if((program.watch && !program.all) && (!program.js && !program.less)) {
+      Console.info('Watching..');
+    }
   }
   
   //--------------------------------------------------------------
@@ -363,6 +371,7 @@ Hoppa.prototype = {
       }
       
     } else {
+    
       if(program.js || program.all) this.compressJavascript();
       if(program.less || program.all) this.compileLess(cb);
     }
@@ -469,7 +478,7 @@ Hoppa.prototype = {
               Console.error('Less compile error at ' + item.file);
               cb();
             }
-          });
+          }, hoppa.project.path);
             
         } catch(e) {
           
