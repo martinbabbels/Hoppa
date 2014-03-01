@@ -5,7 +5,7 @@ Hoppa is a javascript compressor and less compiler for web projects.
 Version
 ----
 
-0.0.2
+0.0.2.1
 
 
 Installation
