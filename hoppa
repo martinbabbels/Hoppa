@@ -23,10 +23,10 @@ var fs = require('fs');
 var npath = require('path');
 
 // Lib
-var Utils = require('../lib/utils');
-var Console = require('../lib/console');
-var Javascript = require('../lib/javascript');
-var Less = require('../lib/less');
+var Utils = require('./lib/utils');
+var Console = require('./lib/console');
+var Javascript = require('./lib/javascript');
+var Less = require('./lib/less');
 
 /* Hoppa class */
 function Hoppa() {
