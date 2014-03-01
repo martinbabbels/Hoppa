@@ -16,13 +16,14 @@ Add a Hoppa project file. Hoppa looks for `hoppa.json` or a given json path at l
 
 ```sh
 {
+
   "config": {
     "compress": true
     ,"compile": true
   }
+  
   ,"js": {
     "./js/scripts.min.js": ["./js/*.js"]
-    ,"./js/mootools.min.js": ["./js/mootools/mootools.js"]
   }
   
   ,"less": {
